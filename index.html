@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIML BE Section - Online Test</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, sans-serif; background: #f1f5f9; color: #172033; }
+  header { background: #18264a; color: white; padding: 22px 16px; text-align: center; }
+  header h1 { margin: 0 0 8px; font-size: 25px; }
+  header p { margin: 4px 0; }
+  main { max-width: 900px; margin: 24px auto; padding: 0 14px; }
+  .card { background: white; padding: 22px; border-radius: 12px; box-shadow: 0 4px 18px #17203312; margin-bottom: 18px; }
+  h2 { margin-top: 0; color: #18264a; }
+  input, textarea { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 7px; font: inherit; margin: 7px 0 14px; }
+  textarea { min-height: 95px; resize: vertical; }
+  button { border: 0; border-radius: 7px; padding: 11px 16px; cursor: pointer; font-weight: bold; margin: 4px 3px 4px 0; }
+  .primary { background: #3949ab; color: white; }
+  .secondary { background: #e2e8f0; color: #172033; }
+  .warn { background: #fff0c2; color: #754c00; }
+  .danger { background: #b42318; color: white; }
+  .hidden { display: none; }
+  .topline { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: bold; margin-bottom: 12px; }
+  .progress { height: 9px; background: #e2e8f0; border-radius: 20px; overflow: hidden; margin: 10px 0 20px; }
+  .progress div { height: 100%; width: 0; background: #3949ab; transition: width .2s; }
+  .options label { display: block; padding: 12px; border: 1px solid #d7deea; border-radius: 8px; margin: 9px 0; cursor: pointer; }
+  .options label:hover { background: #f4f6ff; }
+  .options input { width: auto; margin: 0 8px 0 0; }
+  .nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+  .nav button { min-width: 38px; padding: 9px; background: #e2e8f0; }
+  .nav button.answered { background: #b8efc5; }
+  .nav button.current { outline: 3px solid #3949ab; }
+  .nav button.review { background: #ffe0a3; }
+  .actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 18px; }
+  .small { color: #64748b; font-size: 14px; }
+  .result-number { display: inline-block; background: #eef2ff; padding: 14px; margin: 5px; border-radius: 8px; min-width: 130px; }
+  .result-number strong { display: block; font-size: 24px; margin-top: 5px; }
+  .theory-item { border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 14px; }
+  @media (max-width: 600px) { header h1 { font-size: 21px; } .card { padding: 16px; } .actions button { flex: 1 1 40%; } }
+  @media print { header, .no-print, #startScreen, #examScreen, #theoryScreen { display: none !important; } body { background: white; } .card { box-shadow: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>AIML BE Section</h1>
+  <p>Introduction to Programming and C++</p>
+  <p>Online MCQ Test + Theory Questions</p>
+</header>
+<main>
+  <section id="startScreen" class="card">
+    <h2>Student Details</h2>
+    <label for="studentName">Student Name</label>
+    <input id="studentName" placeholder="Enter your name" required>
+    <label for="rollNo">Enrollment Number</label>
+    <input id="rollNo" placeholder="Enter enrollment number" required>
+    <h3>Test Instructions</h3>
+    <ul>
+      <li>50 MCQs, 1 mark for each correct answer.</li>
+      <li>No negative marking. Maximum marks: 50.</li>
+      <li>Time limit: 60 minutes.</li>
+      <li>There are 10 theory questions after the MCQ test.</li>
+    </ul>
+    <button class="primary" onclick="startExam()">Start Test</button>
+  </section>
+
+  <section id="examScreen" class="card hidden">
+    <div class="topline">
+      <span id="studentLabel"></span>
+      <span>Time Left: <span id="timer">60:00</span></span>
+    </div>
+    <div class="topline small">
+      <span id="countLabel">Question 1 of 50</span>
+      <span id="statusLabel">Answered: 0 | Unanswered: 50</span>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div id="questionBox"></div>
+    <div class="nav" id="questionNav"></div>
+    <p class="small">Green = answered · Orange = marked for review · Blue outline = current question</p>
+    <div class="actions">
+      <button class="secondary" onclick="previousQuestion()">Previous</button>
+      <button class="warn" onclick="toggleReview()">Mark for Review</button>
+      <button class="primary" onclick="nextQuestion()">Next</button>
+      <button class="danger" onclick="submitMCQ(false)">Submit MCQs</button>
+    </div>
+  </section>
+
+  <section id="theoryScreen" class="card hidden">
+    <h2>Section B: Theory Questions</h2>
+    <p>Answer the following 10 questions. Theory answers will be submitted for manual evaluation.</p>
+    <div id="theoryBox"></div>
+    <button class="primary" onclick="saveTheory()">Save Answers</button>
+    <button class="danger" onclick="submitTheory()">Submit Theory</button>
+    <p id="theoryMessage" class="small"></p>
+  </section>
+
+  <section id="resultScreen" class="card hidden">
+    <h2>Test Result</h2>
+    <p id="resultStudent"></p>
+    <div id="resultStats"></div>
+    <p id="theoryStatus"></p>
+    <h3>MCQ Answer Review</h3>
+    <div id="reviewBox"></div>
+    <button class="primary no-print" onclick="window.print()">Print Result</button>
+    <button class="secondary no-print" onclick="location.reload()">Restart Test</button>
+    <p class="small">This demo does not send or permanently store results on a server.</p>
+  </section>
+</main>
+
+<script>
+const questions = [
+["An algorithm is:",["A programming language","A step-by-step solution","A computer device","An operating system"],1,"An algorithm is a finite sequence of steps to solve a problem."],
+["Which is a characteristic of a good algorithm?",["Ambiguous steps","Infinite steps","Clear steps","No output"],2,"Algorithm steps should be clear and unambiguous."],
+["Time complexity describes:",["Memory colour","Running time growth","Screen size","File type"],1,"Time complexity describes how work grows with input size."],
+["Which notation commonly describes an upper bound?",["Big O","HTML","CPU","RGB"],0,"Big O notation expresses an asymptotic upper bound."],
+["Which flowchart symbol represents a decision?",["Oval","Diamond","Rectangle","Arrow"],1,"A diamond represents a decision or condition."],
+["Which symbol usually represents Start or End?",["Oval","Diamond","Rectangle","Circle only"],0,"A terminator symbol, commonly an oval, represents Start or End."],
+["A program is:",["A set of instructions","A monitor","A keyboard","A cable"],0,"A program is a set of instructions executed by a computer."],
+["Which is a high-level programming language?",["Machine code","Binary only","C++","Raw electrical signals"],2,"C++ is a high-level programming language."],
+["Machine language uses:",["English sentences","Binary instructions","Flowchart symbols only","CSS selectors"],1,"Machine language is represented by binary instructions."],
+["Program design should generally begin with:",["Understanding the problem","Writing random code","Printing results","Deleting variables"],0,"Understand and define the problem before designing a solution."],
+["Which paradigm focuses on objects and classes?",["Object-oriented","Procedural only","Markup","Assembly only"],0,"OOP organizes software around objects and classes."],
+["Which paradigm commonly organizes code into procedures or functions?",["Procedural programming","Object storage","Markup only","Database tables"],0,"Procedural programming structures a program around procedures."],
+["Which is an OOP concept?",["Encapsulation","Flowchart arrow","Pixel","Web address"],0,"Encapsulation bundles data and methods and controls access."],
+["Inheritance allows a class to:",["Acquire features from another class","Delete the CPU","Change the keyboard","Stop compiling"],0,"Inheritance supports reuse by deriving a class from another class."],
+["Polymorphism means:",["One interface, multiple forms","Only one variable","No functions","A flowchart start"],0,"Polymorphism allows the same interface to have different behaviours."],
+["Encapsulation combines:",["Data and methods","Only comments","Only output","Only loops"],0,"Encapsulation groups data and the methods that operate on it."],
+["Which is a typical advantage of OOP?",["Code reuse","No need to test","No syntax rules","Always zero memory use"],0,"OOP features such as inheritance can improve code reuse."],
+["In procedural programming, emphasis is often on:",["Functions and procedures","Objects only","HTML colours","Images"],0,"Procedural programming emphasizes procedures and functions."],
+["Which is commonly associated with OOP?",["Class","Flowchart arrow","Pixel","Web browser tab"],0,"Classes are a core OOP building block."],
+["C++ was developed by:",["Bjarne Stroustrup","Dennis Ritchie alone","Tim Berners-Lee","James Gosling"],0,"Bjarne Stroustrup created C++."],
+["Which is a valid C++ identifier?",["2marks","total_marks","total-marks","class"],1,"An identifier may contain underscores and cannot start with a digit; keywords are reserved."],
+["Which character ends a typical C++ statement?",[":",";",",","."],1,"A semicolon terminates most C++ statements."],
+["Which is a C++ keyword?",["student","while","myValue","marks1"],1,"while is a reserved C++ keyword."],
+["Which is a C++ token category?",["Identifier","Monitor","Mouse","Printer"],0,"Identifiers, keywords, literals, operators and punctuators are token categories."],
+["Which operator has higher precedence?",["*","+", "=","||"],0,"Multiplication has higher precedence than addition and assignment."],
+["For operators with the same precedence, associativity determines:",["Grouping direction","Variable name","Data type size always","Screen resolution"],0,"Associativity determines how operators of equal precedence are grouped."],
+["Which is the correct basic C++ entry-point function?",["start()","main()","begin()","runProgram()"],1,"A standard C++ program begins execution in main()."],
+["Which header supports cout and cin in standard C++?",["iostream","picture.h","browser.h","keyboard.css"],0,"The iostream header declares standard stream input and output."],
+["Which is an integer data type in C++?",["int","string.css","floatOnly","booleanText"],0,"int stores integer values."],
+["Which type is commonly used for decimal numbers?",["bool","double","char only","void only"],1,"double represents floating-point values with double precision."],
+["Which type stores a single character?",["char","int[] only","void","loop"],0,"char is used to store a character."],
+["A variable is:",["A named storage location","A flowchart shape","A browser","A compiler error"],0,"A variable names a storage location for a value."],
+["Which operator checks equality?",["=","==","+=","!="],1,"== compares two values for equality."],
+["Which operator gives the remainder?",["/","*","%","+ "],2,"% gives the remainder for integer operands."],
+["What is the result of 7 / 2 when both operands are int in C++?",["3.5","3","4","2"],1,"Integer division discards the fractional part."],
+["Which is a logical AND operator?",["&&","||","!","&="],0,"&& performs logical AND."],
+["Which statement chooses between alternatives based on a condition?",["if","include","using","return type"],0,"if executes a block when its condition is true."],
+["Which loop checks its condition before each iteration?",["while","do-while only after body","Neither","switch"],0,"A while loop checks its condition before running the body."],
+["A do-while loop executes its body at least:",["Zero times","One time","Ten times","Only if compiled twice"],1,"The condition is checked after the body, so it runs at least once."],
+["Which statement is used for multiple fixed-value choices?",["switch","include","cout","typedef only"],0,"switch selects among cases based on an expression."],
+["Which stream displays output in standard C++?",["cin","cout","input","readln"],1,"cout is the standard output stream."],
+["Which stream reads input in standard C++?",["cout","cin","cerr only","print"],1,"cin is the standard input stream."],
+["Which operator is used with cout?",["<<",">>","==","%"],0,"The insertion operator << sends data to cout."],
+["Which operator is commonly used with cin?",[">>","<<","!=","&&"],0,"The extraction operator >> reads data from cin."],
+["An array stores:",["Multiple same-type elements under one name","Only functions","Only files","Only different classes"],0,"A standard C++ array stores elements of the same type."],
+["What is the index of the first element of a C++ array?",["1","-1","0","Depends on the user's name"],2,"C++ arrays use zero-based indexing."],
+["For int a[5], what is the last valid index?",["5","4","6","1"],1,"Five elements have indices 0 through 4."],
+["A function is useful for:",["Reusable blocks of code","Making code impossible to read","Replacing all variables","Turning off a computer"],0,"Functions help organize and reuse code."],
+["A function's return type specifies:",["The type of value returned","Its screen colour","The number of keyboards","Its file location"],0,"The return type declares what type of value a function returns."],
+["Which keyword sends a value back from a function?",["break","return","continue","case"],1,"return exits a function and can provide a value."],
+["Which is a valid function call if greet is a no-argument function?",["greet();","function greet","call greet","greet="],0,"A no-argument function is called with its name and parentheses."]
+];
+
+const theoryQuestions = [
+"Define an algorithm. Write an algorithm to find the larger of two numbers.",
+"Draw or explain common flowchart symbols and their uses.",
+"Explain machine-level, assembly-level, and high-level programming languages.",
+"What is program design? Explain the main steps in designing a program.",
+"Explain any four OOP concepts with simple examples.",
+"Differentiate procedure-oriented programming and object-oriented programming.",
+"Explain C++ tokens, data types, and variables with examples.",
+"Explain operator precedence and associativity with a suitable expression.",
+"Explain if-else, switch, and loops in C++ with examples.",
+"Explain arrays and functions in C++ with a small example."
+];
+
+let current = 0, answers = Array(questions.length).fill(null), review = Array(questions.length).fill(false);
+let seconds = 3600, timerId, submitted = false, student = "", roll = "";
+let theorySubmitted = false;
+
+function startExam() {
+  student = document.getElementById("studentName").value.trim();
+  roll = document.getElementById("rollNo").value.trim();
+  if (!student || !roll) { alert("Please enter your name and enrollment number."); return; }
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("examScreen").classList.remove("hidden");
+  document.getElementById("studentLabel").textContent = student + " | " + roll;
+  buildNav(); showQuestion(); updateStatus(); startTimer();
+}
+function startTimer() {
+  updateTimer();
+  timerId = setInterval(() => {
+    seconds--;
+    updateTimer();
+    if (seconds <= 0) { clearInterval(timerId); submitMCQ(true); }
+  }, 1000);
+}
+function updateTimer() {
+  const m = Math.floor(Math.max(0, seconds) / 60), s = Math.max(0, seconds) % 60;
+  document.getElementById("timer").textContent = String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+}
+function buildNav() {
+  const nav = document.getElementById("questionNav");
+  nav.innerHTML = "";
+  questions.forEach((q,i) => {
+    const b = document.createElement("button");
+    b.textContent = i+1; b.id = "nav"+i; b.onclick = () => { current=i; showQuestion(); };
+    nav.appendChild(b);
+  });
+}
+function showQuestion() {
+  const q = questions[current];
+  document.getElementById("countLabel").textContent = `Question ${current+1} of ${questions.length}`;
+  document.getElementById("progressBar").style.width = ((current+1)/questions.length*100)+"%";
+  let out = `<h2>${current+1}. ${q[0]}</h2><div class="options">`;
+  q[1].forEach((option,i) => {
+    out += `<label><input type="radio" name="answer" value="${i}" ${answers[current]===i?"checked":""} onchange="chooseAnswer(${i})"> ${option}</label>`;
+  });
+  out += "</div>";
+  document.getElementById("questionBox").innerHTML = out;
+  questions.forEach((q,i) => {
+    const b = document.getElementById("nav"+i);
+    b.className = (answers[i]!==null?"answered ":"") + (review[i]?"review ":"") + (i===current?"current":"");
+  });
+  document.querySelector(".warn").textContent = review[current] ? "Unmark Review" : "Mark for Review";
+  updateStatus();
+}
+function chooseAnswer(i) { answers[current]=i; showQuestion(); }
+function updateStatus() {
+  const done = answers.filter(a=>a!==null).length;
+  document.getElementById("statusLabel").textContent = `Answered: ${done} | Unanswered: ${questions.length-done}`;
+}
+function previousQuestion() { if(current>0){current--;showQuestion();} }
+function nextQuestion() { if(current<questions.length-1){current++;showQuestion();} }
+function toggleReview() { review[current]=!review[current]; showQuestion(); }
+function submitMCQ(auto) {
+  if (submitted) return;
+  if (!auto && !confirm("Submit your MCQ test now? You cannot change answers afterward.")) return;
+  submitted = true; clearInterval(timerId);
+  document.getElementById("examScreen").classList.add("hidden");
+  document.getElementById("theoryScreen").classList.remove("hidden");
+  buildTheory();
+}
+function buildTheory() {
+  const box = document.getElementById("theoryBox");
+  box.innerHTML = theoryQuestions.map((q,i)=>`<div class="theory-item"><strong>${i+1}. ${q}</strong><textarea id="theory${i}" placeholder="Write your answer here..." oninput="countWords(${i})"></textarea><div class="small" id="words${i}">Words: 0</div></div>`).join("");
+}
+function countWords(i) {
+  const text = document.getElementById("theory"+i).value.trim();
+  const count = text ? text.split(/\s+/).length : 0;
+  document.getElementById("words"+i).textContent = "Words: "+count;
+}
+function saveTheory() {
+  document.getElementById("theoryMessage").textContent = "Answers are available on this page until you finish or refresh it.";
+  alert("Theory answers saved in this page.");
+}
+function submitTheory() {
+  if (theorySubmitted) return;
+  if (!confirm("Submit theory answers and view your result?")) return;
+  theorySubmitted = true;
+  document.getElementById("theoryScreen").classList.add("hidden");
+  showResult();
+}
+function showResult() {
+  document.getElementById("resultScreen").classList.remove("hidden");
+  const score = questions.reduce((sum,q,i)=>sum+(answers[i]===q[2]?1:0),0);
+  const correct = score, incorrect = answers.filter((a,i)=>a!==null && a!==questions[i][2]).length;
+  const unanswered = answers.filter(a=>a===null).length;
+  const elapsed = 3600-seconds;
+  document.getElementById("resultStudent").textContent = `Student: ${student} | Enrollment: ${roll} | Section: AIML BE Section`;
+  document.getElementById("resultStats").innerHTML = `
+    <div class="result-number">Marks<strong>${score}/50</strong></div>
+    <div class="result-number">Percentage<strong>${(score/50*100).toFixed(1)}%</strong></div>
+    <div class="result-number">Correct<strong>${correct}</strong></div>
+    <div class="result-number">Incorrect<strong>${incorrect}</strong></div>
+    <div class="result-number">Unanswered<strong>${unanswered}</strong></div>
+    <div class="result-number">Time Used<strong>${Math.floor(elapsed/60)}m ${elapsed%60}s</strong></div>`;
+  document.getElementById("theoryStatus").textContent = "Theory answers: " + (theorySubmitted ? "submitted for manual evaluation." : "not submitted.");
+  document.getElementById("reviewBox").innerHTML = questions.map((q,i)=>{
+    const your = answers[i]===null ? "Not answered" : q[1][answers[i]];
+    return `<div class="theory-item"><strong>${i+1}. ${q[0]}</strong><p>Your answer: ${your}</p><p>Correct answer: ${q[1][q[2]]}</p><p class="small">${q[3]}</p></div>`;
+  }).join("");
+}
+</script>
+</body>
+</html>
